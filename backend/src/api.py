@@ -3,6 +3,7 @@ from flask import Flask, request, jsonify, abort
 from sqlalchemy import exc
 import json
 from flask_cors import CORS
+from .database.models import db_drop_and_create_all, setup_db, Drink
 
 from .database.models import db_drop_and_create_all, setup_db, Drink
 from .auth.auth import AuthError, requires_auth
@@ -28,6 +29,23 @@ CORS(app)
     returns status code 200 and json {"success": True, "drinks": drinks} where drinks is the list of drinks
         or appropriate status code indicating reason for failure
 '''
+@app.route('/drinks', methods=['GET'])
+def get_drinks():
+    all_drinks = Drink.query.all()
+    drinks = {}
+    for drink in drink:
+        drinks[drink.id] = drink.short()
+
+    if len(drinks) == 0:
+      abort(404)
+
+    return jsonify({
+      'success': True,
+      'drinks': drinks,
+      'total_drinks':len(all_drinks)
+    })
+
+
 
 
 '''
@@ -38,7 +56,21 @@ CORS(app)
     returns status code 200 and json {"success": True, "drinks": drinks} where drinks is the list of drinks
         or appropriate status code indicating reason for failure
 '''
+@app.route('/drinks-detail', methods=['GET'])
+def get_drinks_detail():
+    all_drinks = Drink.query.all()
+    drinks = {}
+    for drink in drink:
+        drinks[drink.id] = drink.long()
 
+    if len(drinks) == 0:
+      abort(404)
+
+    return jsonify({
+      'success': True,
+      'drinks': drinks,
+      'total_drinks':len(all_drinks)
+    })
 
 '''
 @TODO implement endpoint
@@ -49,8 +81,21 @@ CORS(app)
     returns status code 200 and json {"success": True, "drinks": drink} where drink an array containing only the newly created drink
         or appropriate status code indicating reason for failure
 '''
-
-
+@app.route('/drinks', methods = ['POST'])
+@requires_auth('post:drinks')
+def create_drinks():
+    body = request.get_json()
+    new_title = body.get('title', None)
+    new_recipe = body.get('recipe', None)
+    try:
+      drink = Drink(title=new_title, new_recipe=new_recipe)
+      drink.insert()
+      return jsonify({"success": True,
+                    "drinks": drink.long()
+                    }), 200
+    except Exception as e:
+        print(e)
+        abort(422)
 '''
 @TODO implement endpoint
     PATCH /drinks/<id>
@@ -62,7 +107,24 @@ CORS(app)
     returns status code 200 and json {"success": True, "drinks": drink} where drink an array containing only the updated drink
         or appropriate status code indicating reason for failure
 '''
-
+@app.route('/drinks/<int:id>', methods=['PATCH'])
+@requires_auth('patch:drinks')
+def update_drink(id):
+    try:
+        drink = Drink.query.filter(Drink.id == id).one_or_none() 
+        if not drink : raise
+        
+        body = request.get_json()
+        drink.title = body.get('title', drink.title)
+        recipe = json.dumps(body.get('recipe'))
+        drink.recipe = reciape if recipe != 'null' else drink.recipe
+        drink.update()
+        return  jsonify({"success": True, "drinks": [drink.long()]}), 200
+    except AuthError:
+        abort()
+    except:
+        if not drink: abort(404)
+        abort(422)
 
 '''
 @TODO implement endpoint
