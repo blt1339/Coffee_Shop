@@ -33,7 +33,7 @@ CORS(app)
 def get_drinks():
     all_drinks = Drink.query.all()
     drinks = {}
-    for drink in drink:
+    for drink in all_drinks:
         drinks[drink.id] = drink.short()
 
     if len(drinks) == 0:
@@ -59,8 +59,10 @@ def get_drinks():
 @app.route('/drinks-detail', methods=['GET'])
 def get_drinks_detail():
     all_drinks = Drink.query.all()
+    print('all drinks')
+    print(all_drinks)
     drinks = {}
-    for drink in drink:
+    for drink in all_drinks:
         drinks[drink.id] = drink.long()
 
     if len(drinks) == 0:
@@ -82,13 +84,15 @@ def get_drinks_detail():
         or appropriate status code indicating reason for failure
 '''
 @app.route('/drinks', methods = ['POST'])
-@requires_auth('post:drinks')
+@requires_auth("post:drinks")
 def create_drinks():
     body = request.get_json()
     new_title = body.get('title', None)
     new_recipe = body.get('recipe', None)
+    print(new_title)
+    print(new_recipe)
     try:
-      drink = Drink(title=new_title, new_recipe=new_recipe)
+      drink = Drink(title=new_title, recipe=json.dumps(new_recipe))
       drink.insert()
       return jsonify({"success": True,
                     "drinks": drink.long()
@@ -117,7 +121,7 @@ def update_drink(id):
         body = request.get_json()
         drink.title = body.get('title', drink.title)
         recipe = json.dumps(body.get('recipe'))
-        drink.recipe = reciape if recipe != 'null' else drink.recipe
+        drink.recipe = recipe if recipe != 'null' else drink.recipe
         drink.update()
         return  jsonify({"success": True, "drinks": [drink.long()]}), 200
     except AuthError:
