@@ -32,6 +32,7 @@ CORS(app)
 @app.route('/drinks', methods=['GET'])
 def get_drinks():
     all_drinks = Drink.query.all()
+    print(all_drinks)
 
     if len(all_drinks) == 0:
       abort(404)
@@ -50,7 +51,7 @@ def get_drinks():
         or appropriate status code indicating reason for failure
 '''
 @app.route('/drinks-detail', methods=['GET'])
-def get_drinks_detail(payload):
+def get_drinks_detail():
     all_drinks = Drink.query.all()
     print('all drinks')
     print(all_drinks)
