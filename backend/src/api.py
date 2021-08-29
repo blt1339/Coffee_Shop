@@ -32,21 +32,14 @@ CORS(app)
 @app.route('/drinks', methods=['GET'])
 def get_drinks():
     all_drinks = Drink.query.all()
-    drinks = {}
-    for drink in all_drinks:
-        drinks[drink.id] = drink.short()
 
-    if len(drinks) == 0:
+    if len(all_drinks) == 0:
       abort(404)
 
     return jsonify({
       'success': True,
-      'drinks': drinks,
-      'total_drinks':len(all_drinks)
-    })
-
-
-
+      'drinks': [drink.short() for drink in all_drinks]
+    }),200
 
 '''
 @TODO implement endpoint
@@ -57,22 +50,21 @@ def get_drinks():
         or appropriate status code indicating reason for failure
 '''
 @app.route('/drinks-detail', methods=['GET'])
-def get_drinks_detail():
+def get_drinks_detail(payload):
     all_drinks = Drink.query.all()
     print('all drinks')
     print(all_drinks)
-    drinks = {}
-    for drink in all_drinks:
-        drinks[drink.id] = drink.long()
+    # drinks = {}
+    # for drink in all_drinks:
+    #     drinks[drink.id] = drink.long()
 
-    if len(drinks) == 0:
+    if len(all_drinks) == 0:
       abort(404)
 
     return jsonify({
       'success': True,
-      'drinks': drinks,
-      'total_drinks':len(all_drinks)
-    })
+      'drinks': [drink.long() for drink in all_drinks]
+    }), 200
 
 '''
 @TODO implement endpoint
@@ -85,12 +77,10 @@ def get_drinks_detail():
 '''
 @app.route('/drinks', methods = ['POST'])
 @requires_auth("post:drinks")
-def create_drinks():
+def create_drinks(payload):
     body = request.get_json()
     new_title = body.get('title', None)
     new_recipe = body.get('recipe', None)
-    print(new_title)
-    print(new_recipe)
     try:
       drink = Drink(title=new_title, recipe=json.dumps(new_recipe))
       drink.insert()
@@ -113,7 +103,7 @@ def create_drinks():
 '''
 @app.route('/drinks/<int:id>', methods=['PATCH'])
 @requires_auth('patch:drinks')
-def update_drink(id):
+def update_drink(payload,id):
     try:
         drink = Drink.query.filter(Drink.id == id).one_or_none() 
         if not drink : raise
@@ -140,7 +130,20 @@ def update_drink(id):
     returns status code 200 and json {"success": True, "delete": id} where id is the id of the deleted record
         or appropriate status code indicating reason for failure
 '''
+@app.route('/drinks/<int:id>', methods=['DELETE'])
+@requires_auth('delete:drinks')
+def delete_drink(payload, id):
+    drink = Drink.query.filter(Drink.id == id).one_or_none()
 
+    if not drink:
+        abort(404)
+
+    try:
+        drink.delete()
+    except BaseException:
+        abort(400)
+
+    return jsonify({'success': True, 'delete': id}), 200
 
 # Error Handling
 '''
@@ -172,9 +175,22 @@ def unprocessable(error):
 @TODO implement error handler for 404
     error handler should conform to general task above
 '''
-
+@app.errorhandler(404)
+def unprocessable(error):
+    return jsonify({
+        "success": False,
+        "error": 404,
+        "message": "resource not found"
+    }), 422
 
 '''
 @TODO implement error handler for AuthError
     error handler should conform to general task above
 '''
+@app.errorhandler(AuthError)
+def auth_error(error):
+    return jsonify({
+        "success": False,
+        "error": error.status_code,
+        "message": error.error['description']
+    }), error.status_code
