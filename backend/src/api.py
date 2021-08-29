@@ -32,7 +32,6 @@ CORS(app)
 @app.route('/drinks', methods=['GET'])
 def get_drinks():
     all_drinks = Drink.query.all()
-    print(all_drinks)
 
     if len(all_drinks) == 0:
       abort(404)
@@ -53,11 +52,6 @@ def get_drinks():
 @app.route('/drinks-detail', methods=['GET'])
 def get_drinks_detail():
     all_drinks = Drink.query.all()
-    print('all drinks')
-    print(all_drinks)
-    # drinks = {}
-    # for drink in all_drinks:
-    #     drinks[drink.id] = drink.long()
 
     if len(all_drinks) == 0:
       abort(404)
@@ -104,9 +98,10 @@ def create_drinks(payload):
 '''
 @app.route('/drinks/<int:id>', methods=['PATCH'])
 @requires_auth('patch:drinks')
-def update_drink(payload,id):
+def update_drink(id):
     try:
         drink = Drink.query.filter(Drink.id == id).one_or_none() 
+
         if not drink : raise
         
         body = request.get_json()
@@ -133,7 +128,7 @@ def update_drink(payload,id):
 '''
 @app.route('/drinks/<int:id>', methods=['DELETE'])
 @requires_auth('delete:drinks')
-def delete_drink(payload, id):
+def delete_drink(id):
     drink = Drink.query.filter(Drink.id == id).one_or_none()
 
     if not drink:
@@ -142,7 +137,7 @@ def delete_drink(payload, id):
     try:
         drink.delete()
     except BaseException:
-        abort(400)
+        abort(422)
 
     return jsonify({'success': True, 'delete': id}), 200
 
